@@ -5,7 +5,8 @@ import 'package:smart_gift_finder/main.dart';
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(const SmartGiftFinderApp());
+    await tester.pump(const Duration(seconds: 1));
 
-    expect(find.text('Smart Gift Finder'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
   });
 }

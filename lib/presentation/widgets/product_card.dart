@@ -45,7 +45,7 @@ class _ProductCardState extends State<ProductCard> {
                     child: Image.network(
                       product.thumbnail,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, _, _) => Container(
                         color: AppTheme.primaryLight,
                         child: const Icon(Icons.image_not_supported_outlined),
                       ),

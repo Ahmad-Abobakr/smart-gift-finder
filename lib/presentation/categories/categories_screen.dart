@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../data_sources/remote/api_data_source.dart';
+import '../../data/data_sources/remote/api_data_source.dart';
 
 import 'bloc/categories_bloc.dart';
 import 'bloc/categories_event.dart';

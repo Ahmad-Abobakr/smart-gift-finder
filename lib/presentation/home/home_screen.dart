@@ -178,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: loaded.categories.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      separatorBuilder: (_, _) => const SizedBox(width: 12),
                       itemBuilder: (context, index) {
                         final Category category = loaded.categories[index];
                         return CategoryCard(
@@ -295,7 +295,7 @@ class _AskAiBanner extends StatelessWidget {
             'assets/images/ai_robot.png',
             width: 90,
             height: 90,
-            errorBuilder: (_, __, ___) => const Icon(
+            errorBuilder: (_, _, _) => const Icon(
               Icons.smart_toy_outlined,
               size: 56,
               color: AppTheme.primaryColor,

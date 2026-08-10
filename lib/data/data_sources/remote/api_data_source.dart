@@ -98,4 +98,30 @@ class ApiDataSource {
       throw Exception('فشل البحث: ${e.message}');
     }
   }
+
+  /// جلب منتجات فئة معينة
+  Future<List<ProductModel>> getProductsByCategory(String category) async {
+    try {
+      final response = await _dio.get('/products/category/$category');
+      final List<dynamic> data = response.data['products'] as List<dynamic>;
+      return data
+          .map((e) => ProductModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception('فشل تحميل منتجات الفئة: ${e.message}');
+    }
+  }
+
+  /// جلب منتج واحد بالمعرّف
+  Future<ProductModel> getProductById(int id) async {
+    try {
+      final response = await _dio.get('/products/$id');
+      if (response.data is Map<String, dynamic>) {
+        return ProductModel.fromJson(response.data as Map<String, dynamic>);
+      }
+      throw Exception('استجابة منتج غير صالحة');
+    } on DioException catch (e) {
+      throw Exception('فشل تحميل المنتج: ${e.message}');
+    }
+  }
 }

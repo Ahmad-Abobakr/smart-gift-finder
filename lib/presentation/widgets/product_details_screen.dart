@@ -39,7 +39,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
     return Scaffold(
       backgroundColor: AppTheme.scaffoldBgColor,
       appBar: AppBar(
-        title: const Text('product details'),
+        title: const Text('تفاصيل المنتج'),
         actions: [
           IconButton(
             onPressed: widget.onToggleFavorite,
@@ -98,7 +98,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${product.stock} avilable',
+                              '${product.stock} متوفر',
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: AppTheme.textSecondary,
@@ -126,7 +126,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                         const SizedBox(height: 20),
                         _buildSuitableFor(product),
                         const SizedBox(height: 20),
-                        _sectionTitle('description'),
+                        _sectionTitle('الوصف'),
                         const SizedBox(height: 8),
                         Text(
                           product.description,
@@ -202,7 +202,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle('Suitable for'),
+        _sectionTitle('مناسب لـ'),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -243,14 +243,14 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
             Expanded(
               child: OutlinedButton(
                 onPressed: widget.onAddToCart,
-                child: const Text('add to cart'),
+                child: const Text('أضف إلى السلة'),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
                 onPressed: widget.onBuyNow,
-                child: const Text('buy now'),
+                child: const Text('اشترِ الآن'),
               ),
             ),
           ],

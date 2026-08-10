@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../data_sources/remote/api_data_source.dart';
+import '../../../data/data_sources/remote/api_data_source.dart';
 
 import 'categories_event.dart';
 import 'categories_state.dart';
@@ -22,8 +22,9 @@ class CategoriesBloc
     emit(CategoriesLoading());
 
     try {
+      final categoryModels = await apiDataSource.getCategories();
       final categories =
-          await apiDataSource.getCategories();
+          categoryModels.map((c) => c.slug).toList();
 
       emit(
         CategoriesLoaded(
