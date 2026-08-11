@@ -24,6 +24,14 @@ class _ProductCardState extends State<ProductCard> {
   late bool _isFavorite = widget.isFavorite;
 
   @override
+  void didUpdateWidget(covariant ProductCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isFavorite != widget.isFavorite) {
+      _isFavorite = widget.isFavorite;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final product = widget.product;
     return GestureDetector(

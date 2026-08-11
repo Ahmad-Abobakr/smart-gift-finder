@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/entities/category.dart';
-import '../profile/profile_screen.dart';
 import '../widgets/category_card.dart';
-import '../widgets/product_card.dart';
-import '../widgets/product_details_screen.dart';
+import '../widgets/favoritable_product_card.dart';
+import '../ai_gift/ai_gift_form_screen.dart';
 import 'bloc/home_bloc.dart';
 import 'bloc/home_event.dart';
 import 'bloc/home_state.dart';
@@ -21,7 +20,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
-  int _currentTab = 0;
 
   // خريطة بسيطة لربط اسم الفئة (slug) بأيقونة مناسبة
   // خريطة أيقونة مناسبة لكل فئة (بناءً على الـ slug الراجع من DummyJSON)
@@ -88,15 +86,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _debounce = Timer(const Duration(milliseconds: 400), () {
       context.read<HomeBloc>().add(SearchProducts(value));
     });
-  }
-
-  void _onTabTapped(int index) {
-    setState(() => _currentTab = index);
-    if (index == 4) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const ProfileScreen()),
-      );
-    }
   }
 
   @override
@@ -168,7 +157,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 16),
                 if (!loaded.isSearching) ...[
                   _AskAiBanner(onTap: () {
-                    // TODO: هيتربط بمهمة "Ask AI" المنفصلة (شاشة المحادثة مع الذكاء الاصطناعي)
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const AIGiftFormScreen(),
+                      ),
+                    );
                   }),
                   const SizedBox(height: 20),
                   _SectionHeader(title: 'Popular Categories', onSeeAll: () {}),
@@ -214,36 +207,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   itemBuilder: (context, index) {
                     final product = loaded.products[index];
-                    return ProductCard(
-                      product: product,
-                      onTap: () =>
-                          showProductDetails(context, product: product),
-                    );
+                    return FavoritableProductCard(product: product);
                   },
                 ),
               ],
             ),
           );
         },
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentTab,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppTheme.primaryColor,
-        unselectedItemColor: AppTheme.textSecondary,
-        onTap: _onTabTapped,
-        items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_outlined), label: 'Categories'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_border), label: 'Favorites'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_cart_outlined), label: 'Cart'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline), label: 'Profile'),
-        ],
       ),
     );
   }

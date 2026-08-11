@@ -11,6 +11,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<RegisterRequested>(_onRegisterRequested);
     on<ForgotPasswordRequested>(_onForgotPasswordRequested);
     on<LogoutRequested>(_onLogoutRequested);
+    on<CheckAuthStatus>(_onCheckAuthStatus);
   }
 
   Future<void> _onLoginRequested(
@@ -72,6 +73,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     await authRepository.signOut();
     emit(const AuthInitial());
+  }
+
+  void _onCheckAuthStatus(
+    CheckAuthStatus event,
+    Emitter<AuthState> emit,
+  ) {
+    final user = authRepository.currentUser;
+    if (user != null) {
+      emit(AuthAuthenticated(user));
+    }
   }
 
   String _cleanMessage(Object error) {

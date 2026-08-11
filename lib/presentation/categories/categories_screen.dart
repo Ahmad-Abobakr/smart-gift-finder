@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/data_sources/remote/api_data_source.dart';
+import '../widgets/favoritable_product_card.dart';
 
 import 'bloc/categories_bloc.dart';
 import 'bloc/categories_event.dart';
@@ -115,22 +116,21 @@ class CategoriesView extends StatelessWidget {
                             'Select a category to see products',
                           ),
                         )
-                      : ListView.builder(
+                      : GridView.builder(
                           padding: const EdgeInsets.all(16),
                           itemCount: state.products.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 14,
+                            crossAxisSpacing: 14,
+                            childAspectRatio: 0.72,
+                          ),
                           itemBuilder: (context, index) {
                             final product =
                                 state.products[index];
-                                return Card(
-                              margin:
-                                  const EdgeInsets.only(bottom: 12),
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.all(16),
-                                child: Text(
-                                  product.toString(),
-                                ),
-                              ),
+                            return FavoritableProductCard(
+                              product: product,
                             );
                           },
                         ),

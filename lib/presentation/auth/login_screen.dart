@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/theme/app_theme.dart';
-import '../home/home_screen.dart';
+import '../main_screen.dart';
 import 'bloc/auth_bloc.dart';
 import 'bloc/auth_event.dart';
 import 'bloc/auth_state.dart';
@@ -75,7 +75,9 @@ class _LoginScreenState extends State<LoginScreen> {
         listener: (context, state) {
           if (state is AuthAuthenticated) {
             Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
+              MaterialPageRoute(
+                builder: (_) => const MainScreen(),
+              ),
               (route) => false,
             );
           }
@@ -104,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Image.asset(
                       'assets/images/gift_box.png',
                       width: 260,
-                      errorBuilder: (_, __, ___) => const Icon(
+                      errorBuilder: (_, _, _) => const Icon(
                         Icons.card_giftcard,
                         size: 100,
                         color: AppTheme.primaryColor,
