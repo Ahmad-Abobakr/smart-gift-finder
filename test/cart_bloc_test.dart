@@ -214,187 +214,223 @@ void main() {
         expect(entry.value, equals(2));
       });
 
-      test('should add different products independently', () async {
-        bloc.add(const AddToCart(tProduct1));
-        await Future.delayed(const Duration(milliseconds: 30));
-        bloc.add(const AddToCart(tProduct2));
-        await Future.delayed(const Duration(milliseconds: 50));
+  test('should add different products independently', () async {
+    bloc.add(const AddToCart(tProduct1));
+    await Future.delayed(const Duration(milliseconds: 30));
 
-        final loaded = bloc.state as CartLoaded;
-        expect(loaded.cartItems.length, equals(2));
-      });
+    bloc.add(const AddToCart(tProduct2));
+    await Future.delayed(const Duration(milliseconds: 50));
 
-      test('should persist cart to local storage', () async {
-        bloc.add(const AddToCart(tProduct1));
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        final saved = fakeLocal.getCart();
-        expect(saved.any((key) => key.id == tProduct1.id), isFalse.not, reason: 'should contain product');
-      });
-
-      test('should emit CartLoaded even when Firebase throws', () async {
-        fakeFirebase.configureToThrow();
-        bloc.add(const AddToCart(tProduct1));
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        expect(bloc.state, isA<CartLoaded>());
-      });
-    });
-
-    // ─────────────────────────────────────────────
-    // RemoveFromCart
-    // ─────────────────────────────────────────────
-
-    group('RemoveFromCart', () {
-      test('should remove the correct product', () async {
-        bloc.add(const AddToCart(tProduct1));
-        bloc.add(const AddToCart(tProduct2));
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        bloc.add(const RemoveFromCart(tProduct1.id));
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        final loaded = bloc.state as CartLoaded;
-        expect(loaded.cartItems.keys.any((p) => p.id == tProduct1.id), isFalse);
-        expect(loaded.cartItems.keys.any((p) => p.id == tProduct2.id), isTrue);
-      });
-
-      test('removing non-existent product should have no effect', () async {
-        bloc.add(const AddToCart(tProduct1));
-        await Future.delayed(const Duration(milliseconds: 30));
-
-        bloc.add(const RemoveFromCart(9999));
-        await Future.delayed(const Duration(milliseconds: 30));
-
-        final loaded = bloc.state as CartLoaded;
-        expect(loaded.cartItems.length, equals(1));
-      });
-    });
-
-    // ─────────────────────────────────────────────
-    // IncreaseQuantity
-    // ─────────────────────────────────────────────
-
-    group('IncreaseQuantity', () {
-      test('should increase quantity by 1', () async {
-        bloc.add(const AddToCart(tProduct1));
-        await Future.delayed(const Duration(milliseconds: 30));
-
-        bloc.add(const IncreaseQuantity(tProduct1.id));
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        final loaded = bloc.state as CartLoaded;
-        final qty = loaded.cartItems.entries
-            .firstWhere((e) => e.key.id == tProduct1.id)
-            .value;
-        expect(qty, equals(2));
-      });
-
-      test('increasing non-existent product should have no effect', () async {
-        bloc.add(const AddToCart(tProduct1));
-        await Future.delayed(const Duration(milliseconds: 30));
-
-        bloc.add(const IncreaseQuantity(9999));
-        await Future.delayed(const Duration(milliseconds: 30));
-
-        // State should not change meaningfully — still CartLoaded with product1
-        expect(bloc.state, isA<CartLoaded>());
-      });
-    });
-
-    // ─────────────────────────────────────────────
-    // DecreaseQuantity
-    // ─────────────────────────────────────────────
-
-    group('DecreaseQuantity', () {
-      test('should decrease quantity by 1 when quantity > 1', () async {
-        bloc.add(const AddToCart(tProduct1));
-        bloc.add(const AddToCart(tProduct1)); // quantity = 2
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        bloc.add(const DecreaseQuantity(tProduct1.id));
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        final loaded = bloc.state as CartLoaded;
-        final qty = loaded.cartItems.entries
-            .firstWhere((e) => e.key.id == tProduct1.id)
-            .value;
-        expect(qty, equals(1));
-      });
-
-      test('should remove product when quantity reaches 1 and decrease is triggered', () async {
-        bloc.add(const AddToCart(tProduct1)); // quantity = 1
-        await Future.delayed(const Duration(milliseconds: 30));
-
-        bloc.add(const DecreaseQuantity(tProduct1.id)); // should remove
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        final loaded = bloc.state as CartLoaded;
-        expect(loaded.cartItems.keys.any((p) => p.id == tProduct1.id), isFalse);
-      });
-
-      test('should emit CartLoaded even when Firebase throws during decrease', () async {
-        bloc.add(const AddToCart(tProduct1));
-        bloc.add(const AddToCart(tProduct1));
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        fakeFirebase.configureToThrow();
-        bloc.add(const DecreaseQuantity(tProduct1.id));
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        expect(bloc.state, isA<CartLoaded>());
-      });
-    });
-
-    // ─────────────────────────────────────────────
-    // ClearCart
-    // ─────────────────────────────────────────────
-
-    group('ClearCart', () {
-      test('should emit CartLoaded with empty map', () async {
-        bloc.add(const AddToCart(tProduct1));
-        bloc.add(const AddToCart(tProduct2));
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        bloc.add(const ClearCart());
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        final loaded = bloc.state as CartLoaded;
-        expect(loaded.cartItems, isEmpty);
-      });
-
-      test('should clear local storage', () async {
-        bloc.add(const AddToCart(tProduct1));
-        await Future.delayed(const Duration(milliseconds: 30));
-
-        bloc.add(const ClearCart());
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        final saved = fakeLocal.getCart();
-        expect(saved, isEmpty);
-      });
-
-      test('should emit CartLoaded even when Firebase throws during clear', () async {
-        bloc.add(const AddToCart(tProduct1));
-        await Future.delayed(const Duration(milliseconds: 30));
-
-        fakeFirebase.configureToThrow();
-        bloc.add(const ClearCart());
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        expect(bloc.state, isA<CartLoaded>());
-        final loaded = bloc.state as CartLoaded;
-        expect(loaded.cartItems, isEmpty);
-      });
-
-      test('clearing an already empty cart should emit CartLoaded with empty map', () async {
-        bloc.add(const ClearCart());
-        await Future.delayed(const Duration(milliseconds: 50));
-
-        expect(bloc.state, isA<CartLoaded>());
-        final loaded = bloc.state as CartLoaded;
-        expect(loaded.cartItems, isEmpty);
-      });
-    });
+    final loaded = bloc.state as CartLoaded;
+    expect(loaded.cartItems.length, equals(2));
   });
-}
+
+  test('should persist cart to local storage', () async {
+    bloc.add(const AddToCart(tProduct1));
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    final saved = fakeLocal.getCart();
+
+    expect(
+      saved.keys.any((key) => key.id == tProduct1.id),
+      isTrue,
+      reason: 'should contain product',
+    );
+  });
+
+  test('should emit CartLoaded even when Firebase throws', () async {
+    fakeFirebase.configureToThrow();
+
+    bloc.add(const AddToCart(tProduct1));
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state, isA<CartLoaded>());
+  });
+});
+
+// ─────────────────────────────────────────────
+// RemoveFromCart
+// ─────────────────────────────────────────────
+
+group('RemoveFromCart', () {
+  test('should remove the correct product', () async {
+    bloc.add(const AddToCart(tProduct1));
+    bloc.add(const AddToCart(tProduct2));
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    bloc.add(RemoveFromCart(tProduct1.id));
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    final loaded = bloc.state as CartLoaded;
+
+    expect(
+      loaded.cartItems.keys.any((p) => p.id == tProduct1.id),
+      isFalse,
+    );
+
+    expect(
+      loaded.cartItems.keys.any((p) => p.id == tProduct2.id),
+      isTrue,
+    );
+  });
+
+  test('removing non-existent product should have no effect', () async {
+    bloc.add(const AddToCart(tProduct1));
+    await Future.delayed(const Duration(milliseconds: 30));
+
+    bloc.add(const RemoveFromCart(9999));
+    await Future.delayed(const Duration(milliseconds: 30));
+
+    final loaded = bloc.state as CartLoaded;
+    expect(loaded.cartItems.length, equals(1));
+  });
+});
+
+// ─────────────────────────────────────────────
+// IncreaseQuantity
+// ─────────────────────────────────────────────
+
+group('IncreaseQuantity', () {
+  test('should increase quantity by 1', () async {
+    bloc.add(const AddToCart(tProduct1));
+    await Future.delayed(const Duration(milliseconds: 30));
+
+    bloc.add(IncreaseQuantity(tProduct1.id));
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    final loaded = bloc.state as CartLoaded;
+
+    final qty = loaded.cartItems.entries
+        .firstWhere((e) => e.key.id == tProduct1.id)
+        .value;
+
+    expect(qty, equals(2));
+  });
+
+  test('increasing non-existent product should have no effect', () async {
+    bloc.add(const AddToCart(tProduct1));
+    await Future.delayed(const Duration(milliseconds: 30));
+
+    bloc.add(const IncreaseQuantity(9999));
+    await Future.delayed(const Duration(milliseconds: 30));
+
+    expect(bloc.state, isA<CartLoaded>());
+  });
+});
+
+// ─────────────────────────────────────────────
+// DecreaseQuantity
+// ─────────────────────────────────────────────
+
+group('DecreaseQuantity', () {
+  test('should decrease quantity by 1 when quantity > 1', () async {
+    bloc.add(const AddToCart(tProduct1));
+    bloc.add(const AddToCart(tProduct1));
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    bloc.add(DecreaseQuantity(tProduct1.id));
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    final loaded = bloc.state as CartLoaded;
+
+    final qty = loaded.cartItems.entries
+        .firstWhere((e) => e.key.id == tProduct1.id)
+        .value;
+
+    expect(qty, equals(1));
+  });
+
+  test(
+    'should remove product when quantity reaches 1 and decrease is triggered',
+    () async {
+      bloc.add(const AddToCart(tProduct1));
+      await Future.delayed(const Duration(milliseconds: 30));
+
+      bloc.add(DecreaseQuantity(tProduct1.id));
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      final loaded = bloc.state as CartLoaded;
+
+      expect(
+        loaded.cartItems.keys.any((p) => p.id == tProduct1.id),
+        isFalse,
+      );
+    },
+  );
+
+  test(
+    'should emit CartLoaded even when Firebase throws during decrease',
+    () async {
+      bloc.add(const AddToCart(tProduct1));
+      bloc.add(const AddToCart(tProduct1));
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      fakeFirebase.configureToThrow();
+
+      bloc.add(DecreaseQuantity(tProduct1.id));
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state, isA<CartLoaded>());
+    },
+  );
+});
+
+// ─────────────────────────────────────────────
+// ClearCart
+// ─────────────────────────────────────────────
+
+group('ClearCart', () {
+  test('should emit CartLoaded with empty map', () async {
+    bloc.add(const AddToCart(tProduct1));
+    bloc.add(const AddToCart(tProduct2));
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    bloc.add(const ClearCart());
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    final loaded = bloc.state as CartLoaded;
+    expect(loaded.cartItems, isEmpty);
+  });
+
+  test('should clear local storage', () async {
+    bloc.add(const AddToCart(tProduct1));
+    await Future.delayed(const Duration(milliseconds: 30));
+
+    bloc.add(const ClearCart());
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    final saved = fakeLocal.getCart();
+    expect(saved, isEmpty);
+  });
+
+  test(
+    'should emit CartLoaded even when Firebase throws during clear',
+    () async {
+      bloc.add(const AddToCart(tProduct1));
+      await Future.delayed(const Duration(milliseconds: 30));
+
+      fakeFirebase.configureToThrow();
+
+      bloc.add(const ClearCart());
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      expect(bloc.state, isA<CartLoaded>());
+
+      final loaded = bloc.state as CartLoaded;
+      expect(loaded.cartItems, isEmpty);
+    },
+  );
+
+    test('clearing an already empty cart should emit CartLoaded with empty map', () async {
+    bloc.add(const ClearCart());
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    expect(bloc.state, isA<CartLoaded>());
+    final loaded = bloc.state as CartLoaded;
+    expect(loaded.cartItems, isEmpty);
+  });
+}); // ClearCart group
+
+}); // CartBloc group
+
+} // main

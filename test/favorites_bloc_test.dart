@@ -231,69 +231,87 @@ void main() {
     // ─────────────────────────────────────────────
     // RemoveFavorite
     // ─────────────────────────────────────────────
+group('RemoveFavorite', () {
+  test('should remove the correct product from favorites', () async {
+    bloc.add(const AddFavorite(tProduct1));
+    bloc.add(const AddFavorite(tProduct2));
+    await Future.delayed(const Duration(milliseconds: 50));
 
-    group('RemoveFavorite', () {
-      test('should remove the correct product from favorites', () async {
-        bloc.add(const AddFavorite(tProduct1));
-        bloc.add(const AddFavorite(tProduct2));
-        await Future.delayed(const Duration(milliseconds: 50));
+    bloc.add(RemoveFavorite(tProduct1.id));
+    await Future.delayed(const Duration(milliseconds: 50));
 
-        bloc.add(const RemoveFavorite(tProduct1.id));
-        await Future.delayed(const Duration(milliseconds: 50));
+    final loaded = bloc.state as FavoritesLoaded;
+    expect(
+      loaded.favorites.any((p) => p.id == tProduct1.id),
+      isFalse,
+    );
+    expect(
+      loaded.favorites.any((p) => p.id == tProduct2.id),
+      isTrue,
+    );
+  });
 
-        final loaded = bloc.state as FavoritesLoaded;
-        expect(loaded.favorites.any((p) => p.id == tProduct1.id), isFalse);
-        expect(loaded.favorites.any((p) => p.id == tProduct2.id), isTrue);
-      });
+  test('should result in empty list after removing the only product', () async {
+    bloc.add(const AddFavorite(tProduct1));
+    await Future.delayed(const Duration(milliseconds: 30));
 
-      test('should result in empty list after removing the only product', () async {
-        bloc.add(const AddFavorite(tProduct1));
-        await Future.delayed(const Duration(milliseconds: 30));
+    bloc.add(RemoveFavorite(tProduct1.id));
+    await Future.delayed(const Duration(milliseconds: 50));
 
-        bloc.add(const RemoveFavorite(tProduct1.id));
-        await Future.delayed(const Duration(milliseconds: 50));
+    final loaded = bloc.state as FavoritesLoaded;
+    expect(loaded.favorites, isEmpty);
+  });
 
-        final loaded = bloc.state as FavoritesLoaded;
-        expect(loaded.favorites, isEmpty);
-      });
+  test('removing a non-existent product should have no effect', () async {
+    bloc.add(const AddFavorite(tProduct1));
+    await Future.delayed(const Duration(milliseconds: 30));
 
-      test('removing a non-existent product should have no effect', () async {
-        bloc.add(const AddFavorite(tProduct1));
-        await Future.delayed(const Duration(milliseconds: 30));
+    bloc.add(const RemoveFavorite(9999));
+    await Future.delayed(const Duration(milliseconds: 30));
 
-        bloc.add(const RemoveFavorite(9999)); // doesn't exist
-        await Future.delayed(const Duration(milliseconds: 30));
+    final loaded = bloc.state as FavoritesLoaded;
+    expect(loaded.favorites.length, equals(1));
+  });
 
-        final loaded = bloc.state as FavoritesLoaded;
-        expect(loaded.favorites.length, equals(1));
-      });
+  test('should persist updated list to local storage after removal', () async {
+    bloc.add(const AddFavorite(tProduct1));
+    bloc.add(const AddFavorite(tProduct2));
+    await Future.delayed(const Duration(milliseconds: 50));
 
-      test('should persist updated list to local storage after removal', () async {
-        bloc.add(const AddFavorite(tProduct1));
-        bloc.add(const AddFavorite(tProduct2));
-        await Future.delayed(const Duration(milliseconds: 50));
+    bloc.add(RemoveFavorite(tProduct1.id));
+    await Future.delayed(const Duration(milliseconds: 50));
 
-        bloc.add(const RemoveFavorite(tProduct1.id));
-        await Future.delayed(const Duration(milliseconds: 50));
+    final saved = fakeLocal.getFavorites();
 
-        final saved = fakeLocal.getFavorites();
-        expect(saved.any((p) => p.id == tProduct1.id), isFalse);
-        expect(saved.any((p) => p.id == tProduct2.id), isTrue);
-      });
+    expect(
+      saved.any((p) => p.id == tProduct1.id),
+      isFalse,
+    );
+    expect(
+      saved.any((p) => p.id == tProduct2.id),
+      isTrue,
+    );
+  });
 
-      test('should emit FavoritesLoaded even when Firebase throws during remove', () async {
-        bloc.add(const AddFavorite(tProduct1));
-        await Future.delayed(const Duration(milliseconds: 30));
+    test('should emit FavoritesLoaded even when Firebase throws during remove',
+      () async {
+    bloc.add(const AddFavorite(tProduct1));
+    await Future.delayed(const Duration(milliseconds: 30));
 
-        fakeFirebase.configureToThrow();
+    fakeFirebase.configureToThrow();
 
-        bloc.add(const RemoveFavorite(tProduct1.id));
-        await Future.delayed(const Duration(milliseconds: 50));
+    bloc.add(RemoveFavorite(tProduct1.id));
+    await Future.delayed(const Duration(milliseconds: 50));
 
-        expect(bloc.state, isA<FavoritesLoaded>());
-        final loaded = bloc.state as FavoritesLoaded;
-        expect(loaded.favorites.any((p) => p.id == tProduct1.id), isFalse);
-      });
-    });
+    expect(bloc.state, isA<FavoritesLoaded>());
+
+    final loaded = bloc.state as FavoritesLoaded;
+
+    expect(
+      loaded.favorites.any((p) => p.id == tProduct1.id),
+      isFalse,
+    );
+  });
+  });
   });
 }
