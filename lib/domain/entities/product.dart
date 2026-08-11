@@ -52,4 +52,11 @@ class Product {
       tags: tags ?? this.tags,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is Product && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
 }

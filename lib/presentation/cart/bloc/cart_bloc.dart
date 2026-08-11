@@ -74,13 +74,26 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     Emitter<CartState> emit,
   ) async {
     try {
-      final currentQuantity = _cartItems[event.product] ?? 0;
-      final newQuantity = currentQuantity + 1;
+      Product? existingProduct;
 
-      _cartItems = {
-        ..._cartItems,
-        event.product: newQuantity,
-      };
+      // Search by product ID instead of relying only on object equality.
+      for (final product in _cartItems.keys) {
+        if (product.id == event.product.id) {
+          existingProduct = product;
+          break;
+        }
+      }
+
+      if (existingProduct != null) {
+        final currentQuantity = _cartItems[existingProduct] ?? 0;
+
+        _cartItems[existingProduct] = currentQuantity + 1;
+      } else {
+        _cartItems[event.product] = 1;
+      }
+
+      final productToSave = existingProduct ?? event.product;
+      final newQuantity = _cartItems[productToSave] ?? 1;
 
       await _saveCart();
 
@@ -88,7 +101,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
 
       try {
         await _firebaseDataSource.saveCartItem(
-          ProductModel.fromEntity(event.product),
+          ProductModel.fromEntity(productToSave),
           newQuantity,
         );
       } catch (_) {
