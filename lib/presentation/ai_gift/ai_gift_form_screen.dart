@@ -14,8 +14,8 @@ class _AIGiftFormScreenState extends State<AIGiftFormScreen> {
   String _ageRange = '25-30';
   String _gender = 'Male';
   String _occasion = 'Birthday';
-  String _interests = 'Technology';
-  double _budgetMax = 500;
+  final Set<String> _selectedInterests = {};
+  final TextEditingController _budgetController = TextEditingController(text: '500');
 
   static const _ageRanges = [
     '10-17',
@@ -48,29 +48,22 @@ class _AIGiftFormScreenState extends State<AIGiftFormScreen> {
     'Art',
     'Travel',
     'Fitness',
-    'Technology, Gaming',
-    'Fashion, Beauty',
-    'Sports, Fitness',
-    'Music, Art',
   ];
 
-  String get _budgetLabel {
-    if (_budgetMax <= 50) return 'Under \$50';
-    if (_budgetMax <= 100) return 'Under \$100';
-    if (_budgetMax <= 250) return 'Under \$250';
-    if (_budgetMax <= 500) return 'Under \$500';
-    if (_budgetMax <= 1000) return 'Under \$1000';
-    return 'No limit';
+  double get _budgetMax {
+    final value = double.tryParse(_budgetController.text);
+    return value ?? 0;
   }
 
   void _onSubmit() {
+    final interests = _selectedInterests.join(', ');
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => AIGiftResultsScreen(
           ageRange: _ageRange,
           gender: _gender,
           occasion: _occasion,
-          interests: _interests,
+          interests: interests,
           budgetMax: _budgetMax,
         ),
       ),
@@ -132,19 +125,14 @@ class _AIGiftFormScreenState extends State<AIGiftFormScreen> {
               onChanged: (v) => setState(() => _occasion = v!),
             ),
             const SizedBox(height: 16),
-            _buildDropdown(
-              label: 'Interests',
-              value: _interests,
-              items: _interestsList,
-              onChanged: (v) => setState(() => _interests = v!),
-            ),
+            _buildInterestsSelector(),
             const SizedBox(height: 16),
             _buildBudgetSection(),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _onSubmit,
+                onPressed: _budgetMax <= 0 ? null : _onSubmit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,
@@ -206,6 +194,65 @@ class _AIGiftFormScreenState extends State<AIGiftFormScreen> {
     );
   }
 
+  Widget _buildInterestsSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Interests (select multiple)',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _interestsList.map((interest) {
+            final isSelected = _selectedInterests.contains(interest);
+            return FilterChip(
+              label: Text(interest),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _selectedInterests.add(interest);
+                  } else {
+                    _selectedInterests.remove(interest);
+                  }
+                });
+              },
+              backgroundColor: Colors.white,
+              selectedColor: AppTheme.primaryColor,
+              checkmarkColor: Colors.white,
+              labelStyle: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected ? Colors.white : AppTheme.textPrimary,
+              ),
+              side: BorderSide(
+                color: isSelected ? AppTheme.primaryColor : AppTheme.borderLight,
+                width: isSelected ? 2 : 1,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 8),
+        if (_selectedInterests.isNotEmpty)
+          Text(
+            '${_selectedInterests.length} interests selected',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildBudgetSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,7 +275,7 @@ class _AIGiftFormScreenState extends State<AIGiftFormScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                _budgetLabel,
+                _budgetMax > 0 ? '\$${_budgetMax.toStringAsFixed(0)}' : 'No limit',
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -239,30 +286,24 @@ class _AIGiftFormScreenState extends State<AIGiftFormScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        SliderTheme(
-          data: SliderThemeData(
-            activeTrackColor: AppTheme.primaryColor,
-            inactiveTrackColor: AppTheme.borderLight,
-            thumbColor: AppTheme.primaryColor,
-            overlayColor: AppTheme.primaryColor.withAlpha(30),
-            trackHeight: 4,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+        TextFormField(
+          controller: _budgetController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            hintText: 'Enter budget (e.g., 500)',
+            hintStyle: TextStyle(color: AppTheme.textHint),
+            border: InputBorder.none,
+            errorText: _budgetMax <= 0 ? 'Please enter a valid budget' : null,
           ),
-          child: Slider(
-            value: _budgetMax,
-            min: 0,
-            max: 1000,
-            divisions: 20,
-            onChanged: (v) => setState(() => _budgetMax = v),
-          ),
+          onChanged: (v) => setState(() {}),
         ),
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('\$0', style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
-            Text('\$1000',
-                style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
-          ],
+        const SizedBox(height: 4),
+        Text(
+          'Enter 0 for no budget limit',
+          style: TextStyle(
+            fontSize: 12,
+            color: AppTheme.textSecondary,
+          ),
         ),
       ],
     );

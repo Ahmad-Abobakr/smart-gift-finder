@@ -3,23 +3,14 @@ import 'dart:convert';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-import '../../../domain/entities/product.dart';
-
-class AIGiftResponse {
-  final List<AIGiftSuggestion> suggestions;
-  final String summary;
-
-  const AIGiftResponse({required this.suggestions, required this.summary});
-}
-
-class AIGiftSuggestion {
-  final int productId;
-  final String reason;
-
-  const AIGiftSuggestion({required this.productId, required this.reason});
-}
-
-class AIGiftDataSource {
+/// Service that connects to Gemini via Firebase AI Logic.
+///
+/// Provides two methods:
+/// - [getGiftRecommendations]: structured request with age, gender, occasion, interests, budget
+/// - [getGiftRecommendationsFromPrompt]: free-form user prompt
+///
+/// Both return AI-generated gift recommendations with personalized reasons.
+class AiService {
   GenerativeModel? _model;
 
   Future<GenerativeModel> _getModel() async {
@@ -55,15 +46,21 @@ class AIGiftDataSource {
         'اختر أفضل 1-3 منتجات من الكتالوج تناسب احتياجات المستخدم. '
         'تأكد دائمًا من إرجاع معرفات منتجات موجودة في الكتالوج المقدم. '
         'اكتب ملخصًا ودودًا وموجزًا يشرح توصيحاتك. '
-        'يجب أن يحتوي كل اقتراح على سبب شخصي يوضح لماذا هو مناسب.',
+        'يجب أن يحتوي كل اقتراح على سبب شخصي يوضح لماذا هو مناسب. '
+        'اكتب الإجابة كلها باللغة العربية.',
       ),
     );
 
     return _model!;
   }
 
-  Future<AIGiftResponse> getRecommendations({
-    required List<Product> catalog,
+  /// Structured request with explicit preference fields.
+  ///
+  /// [catalog] must be pre-resolved to a list of product-like maps
+  /// (id, title, price, category, brand, rating, description) that
+  /// exist in your store.
+  Future<AiRecommendationResult> getGiftRecommendations({
+    required List<Map<String, dynamic>> catalog,
     required String ageRange,
     required String gender,
     required String occasion,
@@ -72,22 +69,10 @@ class AIGiftDataSource {
   }) async {
     final model = await _getModel();
 
-    final catalogJson = catalog.map((p) => {
-      'id': p.id,
-      'title': p.title,
-      'price': p.price,
-      'category': p.category,
-      'brand': p.brand,
-      'rating': p.rating,
-      'description': p.description.length > 100
-          ? p.description.substring(0, 100)
-          : p.description,
-    }).toList();
-
     final prompt = [
       Content.text(
         'منتجات الهدايا المتاحة (من متجرنا):\n'
-        '${const JsonEncoder.withIndent('  ').convert(catalogJson)}\n\n'
+        '${const JsonEncoder.withIndent('  ').convert(catalog)}\n\n'
         'تفضيلات المستخدم:\n'
         '- فئة عمرية المستلم: $ageRange\n'
         '- الجنس: $gender\n'
@@ -96,6 +81,36 @@ class AIGiftDataSource {
         '- الميزانية: حتى \$$budgetMax\n\n'
         'اختر منتجات من 1 إلى 3 من الكتالوج أعلاه تناسب هذه التفضيلات. '
         'أرجع JSON مع "summary" (نظرة عامة ودية مكوّنة من جملتين) '
+        'و "suggestions" (مصفوفة من {productId, reason}).',
+      ),
+    ];
+
+    final response = await model.generateContent(prompt);
+
+    if (response.text == null) {
+      throw Exception('AI returned an empty response');
+    }
+
+    return _parseResponse(response.text!);
+  }
+
+  /// Free-form prompt from the user (chat-style).
+  ///
+  /// Pass the [catalog] and the raw [userPrompt].
+  Future<AiRecommendationResult> getGiftRecommendationsFromPrompt({
+    required List<Map<String, dynamic>> catalog,
+    required String userPrompt,
+  }) async {
+    final model = await _getModel();
+
+    final prompt = [
+      Content.text(
+        'منتجات الهدايا المتاحة (من متجرنا):\n'
+        '${const JsonEncoder.withIndent('  ').convert(catalog)}\n\n'
+        'رسالة المستخدم:\n'
+        '"$userPrompt"\n\n'
+        'اختر منتجات من 1 إلى 3 من الكتالوج تناسب هذا الطلب. '
+        'أرجع JSON مع "summary" (نظرة عامة ودية) '
         'و "suggestions" (مصفوفة من {productId, reason}). '
         'اكتب الإجابة كلها باللغة العربية.',
       ),
@@ -107,10 +122,14 @@ class AIGiftDataSource {
       throw Exception('AI returned an empty response');
     }
 
-    final json = jsonDecode(response.text!) as Map<String, dynamic>;
+    return _parseResponse(response.text!);
+  }
+
+  AiRecommendationResult _parseResponse(String text) {
+    final json = jsonDecode(text) as Map<String, dynamic>;
 
     final suggestions = (json['suggestions'] as List<dynamic>? ?? [])
-        .map((s) => AIGiftSuggestion(
+        .map((s) => AiSuggestion(
               productId: s['productId'] as int,
               reason: s['reason'] as String? ?? '',
             ))
@@ -118,6 +137,28 @@ class AIGiftDataSource {
 
     final summary = json['summary'] as String? ?? '';
 
-    return AIGiftResponse(suggestions: suggestions, summary: summary);
+    return AiRecommendationResult(
+      suggestions: suggestions,
+      summary: summary,
+    );
   }
+}
+
+/// Result returned by [AiService].
+class AiRecommendationResult {
+  final List<AiSuggestion> suggestions;
+  final String summary;
+
+  const AiRecommendationResult({
+    required this.suggestions,
+    required this.summary,
+  });
+}
+
+/// A single product suggestion from the AI.
+class AiSuggestion {
+  final int productId;
+  final String reason;
+
+  const AiSuggestion({required this.productId, required this.reason});
 }

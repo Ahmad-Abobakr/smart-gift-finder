@@ -126,46 +126,82 @@ class AIGiftResultsScreen extends StatelessWidget {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: AppTheme.aiGradient,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                Image.asset(
-                  'assets/images/ai_robot.png',
-                  width: 48,
-                  height: 48,
-                  errorBuilder: (_, _, _) => const Icon(
-                    Icons.smart_toy_outlined,
-                    size: 40,
-                    color: Colors.white,
-                  ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withAlpha(40),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    state.summary.isNotEmpty
-                        ? state.summary
-                        : 'Here are the best gifts for a $ageRange year old $gender!',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.white,
-                      height: 1.4,
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Image.asset(
+                      'assets/images/ai_robot.png',
+                      width: 56,
+                      height: 56,
+                      errorBuilder: (_, _, _) => const Icon(
+                        Icons.smart_toy_outlined,
+                        size: 40,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.auto_awesome,
+                                size: 16,
+                                color: Colors.white70,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'نصيحة من الذكاء الاصطناعي',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white.withAlpha(200),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            state.summary.isNotEmpty
+                                ? state.summary
+                                : 'هنا أفضل الهدايا لشخص عمره $ageRange ويبلغ بالجنس $gender!',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Colors.white,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           if (state.products.isEmpty)
             const Center(
               child: Padding(
                 padding: EdgeInsets.only(top: 40),
                 child: Text(
-                  'No matching products found. Try different preferences.',
+                  'لم يتم العثور على منتجات مطابقة. جرّب تفضيلات مختلفة.',
                   style: TextStyle(
                     fontSize: 14,
                     color: AppTheme.textSecondary,
@@ -178,7 +214,7 @@ class AIGiftResultsScreen extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: state.products.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
                 final product = state.products[index];
                 final reason =
