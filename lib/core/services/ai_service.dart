@@ -3,13 +3,18 @@ import 'dart:convert';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-/// Service that connects to Gemini via Firebase AI Logic.
+import '../models/gift_preferences.dart';
+
+/// The ONLY component that talks to Gemini via Firebase AI Logic.
 ///
-/// Provides two methods:
-/// - [getGiftRecommendations]: structured request with age, gender, occasion, interests, budget
-/// - [getGiftRecommendationsFromPrompt]: free-form user prompt
+/// Responsibilities:
+/// - Set up the Gemini model (model name, generation config, JSON response schema)
+/// - Send the Arabic system instruction that makes the AI a gift assistant
+/// - Build the structured prompt from the user's preferences + product catalog
+/// - Parse the AI's raw JSON response into [AiRecommendationResult]
 ///
-/// Both return AI-generated gift recommendations with personalized reasons.
+/// It does NOT know about [Product] entities or matching — that is the
+/// domain use case's job ([GetAiRecommendations]).
 class AiService {
   GenerativeModel? _model;
 
@@ -61,11 +66,7 @@ class AiService {
   /// exist in your store.
   Future<AiRecommendationResult> getGiftRecommendations({
     required List<Map<String, dynamic>> catalog,
-    required String ageRange,
-    required String gender,
-    required String occasion,
-    required String interests,
-    required double budgetMax,
+    required GiftPreferences preferences,
   }) async {
     final model = await _getModel();
 
@@ -74,45 +75,14 @@ class AiService {
         'منتجات الهدايا المتاحة (من متجرنا):\n'
         '${const JsonEncoder.withIndent('  ').convert(catalog)}\n\n'
         'تفضيلات المستخدم:\n'
-        '- فئة عمرية المستلم: $ageRange\n'
-        '- الجنس: $gender\n'
-        '- المناسبة: $occasion\n'
-        '- الاهتمامات: $interests\n'
-        '- الميزانية: حتى \$$budgetMax\n\n'
+        '- فئة عمرية المستلم: ${preferences.ageRange}\n'
+        '- الجنس: ${preferences.gender}\n'
+        '- المناسبة: ${preferences.occasion}\n'
+        '- الاهتمامات: ${preferences.interests}\n'
+        '- الميزانية: حتى \$${preferences.budgetMax}\n\n'
         'اختر منتجات من 1 إلى 3 من الكتالوج أعلاه تناسب هذه التفضيلات. '
         'أرجع JSON مع "summary" (نظرة عامة ودية مكوّنة من جملتين) '
         'و "suggestions" (مصفوفة من {productId, reason}).',
-      ),
-    ];
-
-    final response = await model.generateContent(prompt);
-
-    if (response.text == null) {
-      throw Exception('AI returned an empty response');
-    }
-
-    return _parseResponse(response.text!);
-  }
-
-  /// Free-form prompt from the user (chat-style).
-  ///
-  /// Pass the [catalog] and the raw [userPrompt].
-  Future<AiRecommendationResult> getGiftRecommendationsFromPrompt({
-    required List<Map<String, dynamic>> catalog,
-    required String userPrompt,
-  }) async {
-    final model = await _getModel();
-
-    final prompt = [
-      Content.text(
-        'منتجات الهدايا المتاحة (من متجرنا):\n'
-        '${const JsonEncoder.withIndent('  ').convert(catalog)}\n\n'
-        'رسالة المستخدم:\n'
-        '"$userPrompt"\n\n'
-        'اختر منتجات من 1 إلى 3 من الكتالوج تناسب هذا الطلب. '
-        'أرجع JSON مع "summary" (نظرة عامة ودية) '
-        'و "suggestions" (مصفوفة من {productId, reason}). '
-        'اكتب الإجابة كلها باللغة العربية.',
       ),
     ];
 

@@ -1,4 +1,4 @@
-import '../../../domain/entities/product.dart';
+import '../../../domain/usecases/get_ai_recommendations.dart';
 
 sealed class AIGiftState {
   const AIGiftState();
@@ -13,15 +13,9 @@ class AIGiftLoading extends AIGiftState {
 }
 
 class AIGiftLoaded extends AIGiftState {
-  final List<Product> products;
-  final List<String> reasons;
-  final String summary;
+  final AiGiftRecommendationResult result;
 
-  const AIGiftLoaded({
-    required this.products,
-    required this.reasons,
-    required this.summary,
-  });
+  const AIGiftLoaded({required this.result});
 }
 
 class AIGiftError extends AIGiftState {

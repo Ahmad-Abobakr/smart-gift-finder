@@ -1,47 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../core/models/gift_preferences.dart';
+import '../../core/services/ai_service.dart';
 import '../../core/theme/app_theme.dart';
-import '../../data/data_sources/remote/ai_gift_data_source.dart';
 import '../../data/data_sources/remote/api_data_source.dart';
 import '../../domain/entities/product.dart';
+import '../../domain/usecases/get_ai_recommendations.dart';
 import '../favorites/bloc/favorites_bloc.dart';
 import '../favorites/bloc/favorites_event.dart';
 import '../favorites/bloc/favorites_state.dart';
 import '../widgets/favoritable_product_card.dart';
+import '../widgets/price_tag.dart';
+import '../widgets/rating_stars.dart';
 import 'bloc/ai_gift_bloc.dart';
 import 'bloc/ai_gift_event.dart';
 import 'bloc/ai_gift_state.dart';
 
 class AIGiftResultsScreen extends StatelessWidget {
-  final String ageRange;
-  final String gender;
-  final String occasion;
-  final String interests;
-  final double budgetMax;
+  final GiftPreferences preferences;
 
   const AIGiftResultsScreen({
     super.key,
-    required this.ageRange,
-    required this.gender,
-    required this.occasion,
-    required this.interests,
-    required this.budgetMax,
+    required this.preferences,
   });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => AIGiftBloc(
-        aiDataSource: AIGiftDataSource(),
+        getAiRecommendations: GetAiRecommendations(aiService: AiService()),
         apiDataSource: ApiDataSource(),
-      )..add(SubmitAIPreferences(
-          ageRange: ageRange,
-          gender: gender,
-          occasion: occasion,
-          interests: interests,
-          budgetMax: budgetMax,
-        )),
+      )..add(SubmitAIPreferences(preferences: preferences)),
       child: Scaffold(
         backgroundColor: AppTheme.scaffoldBgColor,
         appBar: AppBar(
@@ -95,10 +85,9 @@ class AIGiftResultsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: () {
-                          context.read<AIGiftBloc>().add(ResetAIGift());
-                          Navigator.of(context).pop();
-                        },
+                        onPressed: () => context.read<AIGiftBloc>().add(
+                              SubmitAIPreferences(preferences: preferences),
+                            ),
                         child: const Text('Try Again'),
                       ),
                     ],
@@ -178,9 +167,9 @@ class AIGiftResultsScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            state.summary.isNotEmpty
-                                ? state.summary
-                                : 'هنا أفضل الهدايا لشخص عمره $ageRange ويبلغ بالجنس $gender!',
+                            state.result.summary.isNotEmpty
+                                ? state.result.summary
+                                : 'هنا أفضل الهدايا لشخص عمره ${preferences.ageRange} ويبلغ بالجنس ${preferences.gender}!',
                             style: const TextStyle(
                               fontSize: 15,
                               color: Colors.white,
@@ -196,7 +185,7 @@ class AIGiftResultsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          if (state.products.isEmpty)
+          if (state.result.products.isEmpty)
             const Center(
               child: Padding(
                 padding: EdgeInsets.only(top: 40),
@@ -213,37 +202,20 @@ class AIGiftResultsScreen extends StatelessWidget {
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: state.products.length,
+              itemCount: state.result.products.length,
               separatorBuilder: (_, _) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
-                final product = state.products[index];
-                final reason =
-                    index < state.reasons.length ? state.reasons[index] : '';
-                return BlocBuilder<FavoritesBloc, FavoritesState>(
-                  builder: (context, favState) {
-                    final favorites = favState is FavoritesLoaded
-                        ? favState.favorites
-                        : const <Product>[];
-                    final isFavorite =
-                        favorites.any((p) => p.id == product.id);
-                    return _AIProductCard(
-                      product: product,
-                      reason: reason,
-                      isFavorite: isFavorite,
-                      onFavoriteToggle: () {
-                        final bloc = context.read<FavoritesBloc>();
-                        if (isFavorite) {
-                          bloc.add(RemoveFavorite(product.id));
-                        } else {
-                          bloc.add(AddFavorite(product));
-                        }
-                      },
-                      onTap: () => openProductDetails(
-                        context,
-                        product: product,
-                      ),
-                    );
-                  },
+                final product = state.result.products[index];
+                final reason = index < state.result.reasons.length
+                    ? state.result.reasons[index]
+                    : '';
+                return _AIProductCard(
+                  product: product,
+                  reason: reason,
+                  onTap: () => openProductDetails(
+                    context,
+                    product: product,
+                  ),
                 );
               },
             ),
@@ -254,149 +226,154 @@ class AIGiftResultsScreen extends StatelessWidget {
 }
 
 class _AIProductCard extends StatelessWidget {
-  final dynamic product;
+  final Product product;
   final String reason;
-  final VoidCallback onTap;
-  final bool isFavorite;
-  final VoidCallback? onFavoriteToggle;
+  final VoidCallback? onTap;
 
   const _AIProductCard({
     required this.product,
     required this.reason,
-    required this.onTap,
-    this.isFavorite = false,
-    this.onFavoriteToggle,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(8),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+    return BlocBuilder<FavoritesBloc, FavoritesState>(
+      builder: (context, state) {
+        final favorites = state is FavoritesLoaded
+            ? state.favorites
+            : const <Product>[];
+        final isFavorite = favorites.any((p) => p.id == product.id);
+
+        return GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(8),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                product.thumbnail,
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  width: 80,
-                  height: 80,
-                  color: AppTheme.primaryLight,
-                  child: const Icon(
-                    Icons.image_outlined,
-                    color: AppTheme.textHint,
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    product.thumbnail,
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Container(
+                      width: 80,
+                      height: 80,
+                      color: AppTheme.primaryLight,
+                      child: const Icon(
+                        Icons.image_outlined,
+                        color: AppTheme.textHint,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          product.title,
-                          style: const TextStyle(
-                            fontSize: 15,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              product.title,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              final bloc = context.read<FavoritesBloc>();
+                              if (isFavorite) {
+                                bloc.add(RemoveFavorite(product.id));
+                              } else {
+                                bloc.add(AddFavorite(product));
+                              }
+                            },
+                            child: Icon(
+                              isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: isFavorite
+                                  ? Colors.red
+                                  : AppTheme.textHint,
+                              size: 20,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryLight,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'AI Suggestion',
+                          style: TextStyle(
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.primaryColor,
                           ),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: onFavoriteToggle,
-                        child: Icon(
-                          isFavorite
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: isFavorite
-                              ? Colors.red
-                              : AppTheme.textHint,
-                          size: 20,
+                      if (reason.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          reason,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                      ],
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          RatingStars(rating: product.rating, size: 14),
+                          const SizedBox(width: 2),
+                          Text(
+                            product.rating.toStringAsFixed(1),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                          const Spacer(),
+                          PriceTag(price: product.price, fontSize: 16),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryLight,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      'AI Suggestion',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ),
-                  ),
-                  if (reason.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      reason,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.textSecondary,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 14, color: AppTheme.starColor),
-                      const SizedBox(width: 2),
-                      Text(
-                        product.rating.toStringAsFixed(1),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '\$${product.price.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primaryColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

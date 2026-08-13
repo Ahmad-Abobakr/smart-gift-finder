@@ -29,18 +29,18 @@ class Product extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        title,
-        description,
-        price,
-        rating,
-        thumbnail,
-        images,
-        category,
-        stock,
-        brand,
-        tags,
-      ];
+    id,
+    title,
+    description,
+    price,
+    rating,
+    thumbnail,
+    images,
+    category,
+    stock,
+    brand,
+    tags,
+  ];
 
   Product copyWith({
     int? id,

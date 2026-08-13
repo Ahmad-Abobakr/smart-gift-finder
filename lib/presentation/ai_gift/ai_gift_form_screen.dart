@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/models/gift_preferences.dart';
 import '../../core/theme/app_theme.dart';
 import 'ai_gift_results_screen.dart';
 
@@ -56,16 +57,16 @@ class _AIGiftFormScreenState extends State<AIGiftFormScreen> {
   }
 
   void _onSubmit() {
-    final interests = _selectedInterests.join(', ');
+    final preferences = GiftPreferences(
+      ageRange: _ageRange,
+      gender: _gender,
+      occasion: _occasion,
+      interests: _selectedInterests.join(', '),
+      budgetMax: _budgetMax,
+    );
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => AIGiftResultsScreen(
-          ageRange: _ageRange,
-          gender: _gender,
-          occasion: _occasion,
-          interests: interests,
-          budgetMax: _budgetMax,
-        ),
+        builder: (_) => AIGiftResultsScreen(preferences: preferences),
       ),
     );
   }
