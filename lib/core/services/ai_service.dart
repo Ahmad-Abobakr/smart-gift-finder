@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-import '../models/gift_preferences.dart';
+import '../../data/models/gift_preferences.dart';
+
 
 /// The ONLY component that talks to Gemini via Firebase AI Logic.
 ///

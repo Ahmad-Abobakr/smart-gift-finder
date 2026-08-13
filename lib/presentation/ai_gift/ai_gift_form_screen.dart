@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../core/models/gift_preferences.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/models/gift_preferences.dart';
 import 'ai_gift_results_screen.dart';
 
 class AIGiftFormScreen extends StatefulWidget {

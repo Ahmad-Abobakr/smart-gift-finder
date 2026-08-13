@@ -1,4 +1,5 @@
-import '../../../core/models/gift_preferences.dart';
+
+import '../../../data/models/gift_preferences.dart';
 
 sealed class AIGiftEvent {
   const AIGiftEvent();

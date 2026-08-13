@@ -1,5 +1,5 @@
-import '../../core/models/gift_preferences.dart';
 import '../../core/services/ai_service.dart';
+import '../../data/models/gift_preferences.dart';
 import '../entities/product.dart';
 
 /// Domain use case: turn a product catalog + user preferences into

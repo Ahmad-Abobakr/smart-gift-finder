@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/models/gift_preferences.dart';
 import '../../core/services/ai_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/data_sources/remote/api_data_source.dart';
+import '../../data/models/gift_preferences.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/usecases/get_ai_recommendations.dart';
 import '../favorites/bloc/favorites_bloc.dart';
